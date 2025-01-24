@@ -19,7 +19,7 @@ print(CameraServer.feeds())
 ## Support Status
 | Platform | Backend | Formats |
 | - | :-: | :-: |
-| Android | - | - |
+| Android | Camera2 (CPU-based) | JPEG |
 | iOS | - | - |
 | Linux | PipeWire | YUY2<br>YVYU<br>UYVY<br>VYUY |
 | macOS | - | - |

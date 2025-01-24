@@ -5,6 +5,10 @@ compatibility_minimum = "4.4"
 
 [libraries]
 
+android.arm32 = "res://addons/CameraServerExtension/arm32/libcameraserver-extension.android.so"
+android.arm64 = "res://addons/CameraServerExtension/arm64/libcameraserver-extension.android.so"
+android.x86_32 = "res://addons/CameraServerExtension/x86_32/libcameraserver-extension.android.so"
+android.x86_64 = "res://addons/CameraServerExtension/x86_64/libcameraserver-extension.android.so"
 linux.arm64 = "res://addons/CameraServerExtension/arm64/libcameraserver-extension.linux.so"
 linux.x86_32 = "res://addons/CameraServerExtension/x86_32/libcameraserver-extension.linux.so"
 linux.x86_64 = "res://addons/CameraServerExtension/x86_64/libcameraserver-extension.linux.so"

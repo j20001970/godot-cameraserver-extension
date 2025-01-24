@@ -7,7 +7,9 @@ sources = Glob("src/*.cpp")
 
 library_path = "addons/CameraServerExtension/{}/libcameraserver-extension.{}{}"
 
-if env["platform"] == "linux":
+if env["platform"] == "android":
+    sources += Glob("src/android/*.cpp")
+elif env["platform"] == "linux":
     env.ParseConfig("pkg-config glib-2.0 --cflags --libs")
     env.ParseConfig("pkg-config gio-2.0 --cflags --libs")
     env.ParseConfig("pkg-config libpipewire-0.3 --cflags --libs")

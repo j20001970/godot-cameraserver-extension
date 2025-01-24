@@ -1,0 +1,11 @@
+[configuration]
+
+entry_symbol = "camera_library_init"
+compatibility_minimum = "4.4"
+
+[libraries]
+
+linux.arm64 = "res://addons/CameraServerExtension/arm64/libcameraserver-extension.linux.so"
+linux.x86_32 = "res://addons/CameraServerExtension/x86_32/libcameraserver-extension.linux.so"
+linux.x86_64 = "res://addons/CameraServerExtension/x86_64/libcameraserver-extension.linux.so"
+linux.rv64 = "res://addons/CameraServerExtension/rv64/libcameraserver-extension.linux.so"

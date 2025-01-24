@@ -21,7 +21,7 @@ print(CameraServer.feeds())
 | - | :-: | :-: |
 | Android | - | - |
 | iOS | - | - |
-| Linux | - | - |
+| Linux | PipeWire | YUY2<br>YVYU<br>UYVY<br>VYUY |
 | macOS | - | - |
 | Windows | - | - |
 | Web | - | - |

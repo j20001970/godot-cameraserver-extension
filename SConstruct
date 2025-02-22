@@ -9,6 +9,12 @@ library_path = "addons/CameraServerExtension/{}/libcameraserver-extension.{}{}"
 
 if env["platform"] == "android":
     sources += Glob("src/android/*.cpp")
+elif env["platform"] == "macos" or env["platform"] == "ios":
+    env.Append(LINKFLAGS=["-framework", "AVFoundation"])
+    env.Append(LINKFLAGS=["-framework", "CoreMedia"])
+    env.Append(LINKFLAGS=["-framework", "CoreVideo"])
+    env.Append(LINKFLAGS=["-framework", "Foundation"])
+    sources += Glob("src/apple/*.mm")
 elif env["platform"] == "linux":
     env.ParseConfig("pkg-config glib-2.0 --cflags --libs")
     env.ParseConfig("pkg-config gio-2.0 --cflags --libs")

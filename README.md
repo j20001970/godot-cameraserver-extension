@@ -23,7 +23,7 @@ print(CameraServer.feeds())
 | Linux | PipeWire | YUY2<br>YVYU<br>UYVY<br>VYUY |
 | iOS (untested) | AVFoundation | - |
 | macOS | AVFoundation | - |
-| Windows | - | - |
+| Windows | Media Foundation | YUY2<br>NV12<br>MJPG |
 | Web | - | - |
 
 ## Known Issues

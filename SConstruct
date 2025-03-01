@@ -20,6 +20,17 @@ elif env["platform"] == "linux":
     env.ParseConfig("pkg-config gio-2.0 --cflags --libs")
     env.ParseConfig("pkg-config libpipewire-0.3 --cflags --libs")
     sources += Glob("src/linux/*.cpp")
+elif env["platform"] == "windows":
+    env.Append(LIBS=[
+        "advapi32",
+        "ole32",
+        "shlwapi",
+        "mf",
+        "mfuuid",
+        "mfplat",
+        "mfreadwrite"
+    ])
+    sources += Glob("src/windows/*.cpp")
 else:
     sources += Glob("src/dummy/*.cpp")
 

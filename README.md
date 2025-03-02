@@ -17,14 +17,67 @@ print(CameraServer.feeds())
 ```
 
 ## Support Status
-| Platform | Backend | Formats |
-| - | :-: | :-: |
-| Android | Camera2 (CPU-based) | JPEG |
-| Linux | PipeWire | YUY2<br>YVYU<br>UYVY<br>VYUY |
-| iOS (untested) | AVFoundation | - |
-| macOS | AVFoundation | - |
-| Windows | Media Foundation | YUY2<br>NV12<br>MJPG |
-| Web | - | - |
+<table>
+    <tbody>
+        <tr>
+            <th>Platform</th>
+            <th>Backend</th>
+            <th>Formats</th>
+            <th>Notes</th>
+        </tr>
+        <tr>
+            <td>Android</td>
+            <td align="center">Camera2 (CPU-based)</td>
+            <td>
+                <ul>
+                    <li>JPEG</li>
+                </ul>
+            </td>
+            <td align="center">-</td>
+        </tr>
+        <tr>
+            <td>Linux</td>
+            <td align="center">PipeWire</td>
+            <td>
+                <ul>
+                    <li>YUY2</li>
+                    <li>YVYU</li>
+                    <li>UYVY</li>
+                    <li>VYUY</li>
+                </ul>
+            </td>
+            <td align="center">-</td>
+        </tr>
+        <tr>
+            <td>iOS</td>
+            <td align="center" rowspan=2>AVFoundation</td>
+            <td align="center" rowspan=2>-</td>
+            <td>Untested</td>
+        </tr>
+        <tr>
+            <td>macOS</td>
+            <td align="center">-</td>
+        </tr>
+        <tr>
+            <td>Windows</td>
+            <td align="center">Media Foundation</td>
+            <td>
+                <ul>
+                    <li>YUY2</li>
+                    <li>NV12</li>
+                    <li>MJPG</li>
+                </ul>
+            </td>
+            <td align="center">-</td>
+        </tr>
+        <tr>
+            <td>Web</td>
+            <td align="center">-</td>
+            <td align="center">-</td>
+            <td align="center">-</td>
+        </tr>
+    </tbody>
+</table>
 
 ## Known Issues
 - Avoid upcasting `CameraFeedExtension` to `CameraFeed`, otherwise `get_formats` and `set_format` will not work.

@@ -1,0 +1,45 @@
+name: 🐧 Build Linux
+on: [workflow_call, workflow_dispatch]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+        include:
+          - arch: arm64
+            os: ubuntu-24.04-arm
+            runtime: runtime/org.freedesktop.Sdk/aarch64/24.08
+          - arch: x86_64
+            os: ubuntu-24.04
+            runtime: runtime/org.freedesktop.Sdk/x86_64/24.08
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install --system -y flathub ${{ matrix.runtime }}
+
+      - name: Build
+        run: |
+          flatpak run -p --filesystem=host --share=network org.freedesktop.Sdk << EOF
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install scons
+          scons arch=${{ matrix.arch }}
+          EOF
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-linux-${{ matrix.arch }}
+          path: |
+            addons/CameraServerExtension/*/libcameraserver-extension.linux.so

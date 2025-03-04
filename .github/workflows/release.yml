@@ -1,0 +1,68 @@
+name: Release
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check latest commit
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Check
+        id: check
+        continue-on-error: true
+        if: ${{ github.event_name == 'schedule' }}
+        run: test -z $(git rev-list -n 1  --after="24 hours"  ${{ github.sha }}) && echo "should_run=false" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build
+    needs: check
+    if: ${{ needs.check.outputs.should_run != 'false' }}
+    uses: ./.github/workflows/build.yml
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Get Current Date
+        id: date
+        run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-artifact-*
+
+      - name: Assemble
+        run: |
+          cp LICENSE addons/CameraServerExtension/
+          cp README.md addons/CameraServerExtension/
+          for f in build-artifact-*
+          do
+          cp -r $f/* addons/CameraServerExtension/
+          done
+          sed -i "s/dev/${{ steps.date.outputs.date }}/" addons/CameraServerExtension/plugin.cfg
+          zip -r CameraServerExtension-${{ steps.date.outputs.date }}.zip addons
+
+      - name: Upload
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+        shell: bash
+        run: |
+          gh release create -p --generate-notes ${{ steps.date.outputs.date }}
+          gh release upload ${{ steps.date.outputs.date }} CameraServerExtension-${{ steps.date.outputs.date }}.zip

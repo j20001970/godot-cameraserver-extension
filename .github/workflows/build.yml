@@ -1,0 +1,23 @@
+name: Build
+on: [pull_request, workflow_call, workflow_dispatch]
+
+jobs:
+  build-android:
+    name: 🤖 Build Android
+    uses: ./.github/workflows/build-android.yml
+
+  build-ios:
+    name: 🍏 Build iOS
+    uses: ./.github/workflows/build-ios.yml
+
+  build-linux:
+    name: 🐧 Build Linux
+    uses: ./.github/workflows/build-linux.yml
+
+  build-macos:
+    name: 🍎 Build macOS
+    uses: ./.github/workflows/build-macos.yml
+
+  build-windows:
+    name: 🏁 Build Windows
+    uses: ./.github/workflows/build-windows.yml

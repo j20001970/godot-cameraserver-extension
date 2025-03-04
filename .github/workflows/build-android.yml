@@ -1,0 +1,63 @@
+name: 🤖 Build Android
+on: [workflow_call, workflow_dispatch]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [arm32, arm64, x86_32, x86_64]
+    name: Android ${{ matrix.arch }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Setup
+        run: |
+          python -m pip install scons
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;23.2.8568313"
+
+      - name: Build
+        run: |
+          scons platform=android arch=${{ matrix.arch }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-android-${{ matrix.arch }}
+          path: |
+            addons/CameraServerExtension/*/libcameraserver-extension.android.so
+
+  build-aar:
+    name: Android AAR
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build
+        working-directory: android
+        run: |
+          ./gradlew assemble
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-android-aar
+          path: |
+            android/build/outputs/aar/*.aar

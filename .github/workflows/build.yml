@@ -21,3 +21,7 @@ jobs:
   build-windows:
     name: 🏁 Build Windows
     uses: ./.github/workflows/build-windows.yml
+
+  build-web:
+    name: 🌐 Build Web
+    uses: ./.github/workflows/build-web.yml

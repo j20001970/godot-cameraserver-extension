@@ -54,10 +54,10 @@ static void on_registry_event_global(void *user_data, uint32_t id, uint32_t perm
 	pw_stream *stream = pw_stream_new(server->core, "", stream_props);
 	struct pw_proxy *feed_proxy = (struct pw_proxy *)pw_registry_bind(server->registry, id, type, version, 0);
 	const char *feed_name = pw_properties_get(feed_props, PW_KEY_NODE_DESCRIPTION);
-	pw_properties_free(feed_props);
 	std::unique_ptr<CameraFeedLinux> feed_impl = std::make_unique<CameraFeedLinux>(id, feed_name, feed_proxy, stream);
 	Ref<CameraFeedExtension> feed = memnew(CameraFeedExtension(std::move(feed_impl)));
 	server->this_->get_server()->add_feed(feed);
+	pw_properties_free(feed_props);
 }
 
 static void on_registry_event_global_remove(void *user_data, uint32_t id) {

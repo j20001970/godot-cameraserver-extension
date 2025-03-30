@@ -13,6 +13,7 @@ class SourceReaderCallback : public IMFSourceReaderCallback {
 private:
 	long ref_count = 1;
 	CRITICAL_SECTION critsec = {};
+	HANDLE event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	bool eos = false;
 	CameraFeedWindows *feed = nullptr;
 
@@ -53,6 +54,10 @@ public:
 
 	STDMETHODIMP OnFlush(DWORD) {
 		return S_OK;
+	}
+
+	void Wait() {
+		WaitForSingleObject(event, INFINITE);
 	}
 
 	void Stop() {

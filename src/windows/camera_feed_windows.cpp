@@ -15,19 +15,21 @@ HRESULT SourceReaderCallback::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex
 	Ref<Image> image;
 	EnterCriticalSection(&critsec);
 	if (FAILED(hrStatus) || eos) {
+		eos = false;
+		SetEvent(event);
 		goto done;
 	}
 	if (!feed || !feed->reader) {
 		goto done;
 	}
 	feed->reader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, nullptr, nullptr, nullptr, nullptr);
+	if (dwStreamFlags != 0) {
+		goto done;
+	}
 	if (FAILED(feed->reader->GetCurrentMediaType(0, &media_type))) {
 		goto done;
 	}
 	if (FAILED(MFGetAttributeSize(media_type, MF_MT_FRAME_SIZE, &width, &height))) {
-		goto done;
-	}
-	if (dwStreamFlags != 0) {
 		goto done;
 	}
 	if (FAILED(pSample->ConvertToContiguousBuffer(&output_buffer))) {
@@ -85,6 +87,9 @@ CameraFeedWindows::~CameraFeedWindows() {
 	if (callback) {
 		callback->Release();
 	}
+	if (reader) {
+		reader->Release();
+	}
 	if (media_type_handler) {
 		media_type_handler->Release();
 	}
@@ -95,6 +100,7 @@ CameraFeedWindows::~CameraFeedWindows() {
 		presentation_descriptor->Release();
 	}
 	if (source) {
+		source->Stop();
 		source->Shutdown();
 		source->Release();
 	}
@@ -109,50 +115,67 @@ bool CameraFeedWindows::activate_feed() {
 	IMFAttributes *attributes = nullptr;
 	IMFMediaType *media_type = nullptr;
 	IMFMediaType *output_type = nullptr;
+	if (reader) {
+		return true;
+	}
 	ERR_FAIL_NULL_V(source, false);
+	ERR_FAIL_NULL_V(media_type_handler, false);
 	ERR_FAIL_NULL_V(callback, false);
 	if (selected_format != -1) {
-		ERR_FAIL_NULL_V(media_type_handler, false);
 		ERR_FAIL_COND_V(FAILED(media_type_handler->GetMediaTypeByIndex(selected_format, &media_type)), false);
 		if (FAILED(media_type_handler->SetCurrentMediaType(media_type))) {
+			ERR_PRINT("Failed to set current media type.");
 			goto done;
 		}
 	} else {
 		ERR_FAIL_COND_V(FAILED(media_type_handler->GetCurrentMediaType(&media_type)), false);
 	}
 	if (FAILED(MFCreateMediaType(&output_type))) {
+		ERR_PRINT("Failed to create output media type.");
 		goto done;
 	}
 	if (FAILED(media_type->CopyAllItems(output_type))) {
+		ERR_PRINT("Failed to copy media type.");
 		goto done;
 	}
 	if (FAILED(output_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32))) {
+		ERR_PRINT("Failed to set video format.");
 		goto done;
 	}
-	if (FAILED(MFCreateAttributes(&attributes, 2))) {
+	if (FAILED(MFCreateAttributes(&attributes, 3))) {
+		ERR_PRINT("Failed to create attributes.");
 		goto done;
 	}
 	if (FAILED(attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, callback))) {
+		ERR_PRINT("Failed to set callback.");
 		goto done;
 	}
 	if (FAILED(attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE))) {
+		ERR_PRINT("Failed to enable video processing.");
+		goto done;
+	}
+	if (FAILED(attributes->SetUINT32(MF_SOURCE_READER_DISCONNECT_MEDIASOURCE_ON_SHUTDOWN, TRUE))) {
+		ERR_PRINT("Failed to set manual release media source.");
 		goto done;
 	}
 	if (FAILED(MFCreateSourceReaderFromMediaSource(source, attributes, &reader))) {
+		ERR_PRINT("Failed to create source reader.");
 		goto done;
 	}
 	if (FAILED(reader->SetCurrentMediaType(0, nullptr, output_type))) {
-		reader->Release();
-		reader = nullptr;
+		ERR_PRINT("Failed to set current media type for source reader.");
 		goto done;
 	}
 	if (FAILED(reader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, nullptr, nullptr, nullptr, nullptr))) {
-		reader->Release();
-		reader = nullptr;
+		ERR_PRINT("Failed to read sample.");
 		goto done;
 	}
 	result = true;
 done:
+	if (!result) {
+		reader->Release();
+		reader = nullptr;
+	}
 	if (output_type) {
 		output_type->Release();
 	}
@@ -166,16 +189,18 @@ done:
 }
 
 void CameraFeedWindows::deactivate_feed() {
+	if (reader == nullptr) {
+		return;
+	}
 	if (callback) {
 		callback->Stop();
-	}
-	if (reader) {
-		reader->Release();
-		reader = nullptr;
+		callback->Wait();
 	}
 	if (source) {
-		source->Stop();
+		source->Pause();
 	}
+	reader->Release();
+	reader = nullptr;
 }
 
 TypedArray<Dictionary> CameraFeedWindows::get_formats() const {

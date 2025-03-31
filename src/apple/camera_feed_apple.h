@@ -9,6 +9,7 @@
 
 #include "godot_cpp/classes/image.hpp"
 #include "godot_cpp/variant/dictionary.hpp"
+#include "godot_cpp/variant/string.hpp"
 #include "godot_cpp/variant/typed_array.hpp"
 
 using namespace godot;

@@ -54,7 +54,7 @@ AVCaptureDevice *CameraFeedApple::get_device() const {
 void CameraFeedApple::set_this(CameraFeedExtension *p_feed) {
 	this_ = p_feed;
 	delegate = [[OutputDelegate alloc] init:this_];
-	this_->set_name(device.localizedName.UTF8String);
+	this_->set_name(godot::String::utf8(device.localizedName.UTF8String));
 	godot::CameraFeed::FeedPosition position = godot::CameraFeed::FeedPosition::FEED_UNSPECIFIED;
 	if (device.position == AVCaptureDevicePositionFront) {
 		position = godot::CameraFeed::FeedPosition::FEED_FRONT;

@@ -118,7 +118,10 @@ static void on_stream_process(void *data) {
 	feed->buffer->start = buf->datas[0].data;
 	feed->buffer->length = buf->datas[0].chunk->size;
 	feed->decoder->decode(*feed->buffer);
-	feed->this_->emit_signal("frame_changed");
+	if (feed->this_) {
+		// Defer frame_changed signal to prevent deadlock (to be investigated).
+		feed->this_->call_deferred("emit_signal", "frame_changed");
+	}
 }
 
 static const struct pw_node_events node_events = {

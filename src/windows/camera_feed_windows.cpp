@@ -52,7 +52,7 @@ HRESULT SourceReaderCallback::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex
 	image->set_data(width, height, false, Image::FORMAT_RGBA8, data);
 	image->convert(Image::FORMAT_RGB8);
 	feed->this_->set_rgb_image(image);
-	feed->this_->emit_signal("frame_changed");
+	feed->this_->call_deferred("emit_signal", "frame_changed");
 done:
 	if (output_buffer) {
 		output_buffer->Release();

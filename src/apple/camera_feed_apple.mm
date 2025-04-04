@@ -5,7 +5,6 @@
 - (instancetype)init:(godot::CameraFeed *)p_feed {
 	self = [super init];
 	self.feed = p_feed;
-	self.image.instantiate();
 	return self;
 }
 
@@ -13,6 +12,7 @@
 		didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 			   fromConnection:(AVCaptureConnection *)connection {
 	PackedByteArray data;
+	Ref<Image> image;
 	CVPixelBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
 	ERR_FAIL_COND(CVPixelBufferGetPixelFormatType(imageBuffer) != kCVPixelFormatType_24RGB);
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
@@ -22,10 +22,10 @@
 	size_t size = CVPixelBufferGetDataSize(imageBuffer);
 	data.resize(size);
 	memcpy(data.ptrw(), baseAddress, size);
-	[NSData dataWithBytes:baseAddress length:CVPixelBufferGetDataSize(imageBuffer)];
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
-	self.image->set_data(width, height, false, Image::FORMAT_RGB8, data);
-	self.feed->set_rgb_image(self.image);
+	image.instantiate();
+	image->set_data(width, height, false, Image::FORMAT_RGB8, data);
+	self.feed->set_rgb_image(image);
 	self.feed->emit_signal("frame_changed");
 }
 

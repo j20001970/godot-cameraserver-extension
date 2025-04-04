@@ -16,7 +16,6 @@ using namespace godot;
 
 @interface OutputDelegate : NSObject <AVCaptureVideoDataOutputSampleBufferDelegate>
 @property(nonatomic) CameraFeed *feed;
-@property(nonatomic) Ref<Image> image;
 @end
 
 class CameraFeedApple : public extension::CameraFeed {

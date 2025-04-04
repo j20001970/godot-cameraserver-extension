@@ -24,7 +24,7 @@ private:
 	void access_camera();
 	int open_pipewire_remote();
 
-	void pipewire_connect(int pw_fd);
+	void pipewire_connect();
 
 public:
 	static pw_thread_loop *get_loop();

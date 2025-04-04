@@ -17,8 +17,7 @@ static void on_permission_callback(GDBusConnection *connection, const char *send
 	g_variant_get(parameters, "(u@a{sv})", &response, &result);
 	bool granted = response == 0;
 	if (granted) {
-		int pipewire_fd = server->open_pipewire_remote();
-		server->pipewire_connect(pipewire_fd);
+		server->pipewire_connect();
 	}
 	server->this_->emit_signal("permission_result", granted);
 }
@@ -30,6 +29,9 @@ static void on_registry_event_global(void *user_data, uint32_t id, uint32_t perm
 	}
 	const char *media_class = spa_dict_lookup(props, SPA_KEY_MEDIA_CLASS);
 	const char *media_role = spa_dict_lookup(props, SPA_KEY_MEDIA_ROLE);
+	if (media_class == nullptr || media_role == nullptr) {
+		return;
+	}
 	if (strcmp(media_class, "Video/Source") && strcmp(media_role, "Camera")) {
 		return;
 	}
@@ -96,15 +98,8 @@ CameraServerLinux::CameraServerLinux(CameraServerExtension *server) :
 			"/org/freedesktop/portal/desktop",
 			"org.freedesktop.portal.Camera",
 			nullptr, &err);
-	if (err) {
-		ERR_PRINT(err->message);
-	}
 	pw_init(nullptr, nullptr);
-	int pipewire_fd = open_pipewire_remote();
-	if (pipewire_fd == -1) {
-		return;
-	}
-	pipewire_connect(pipewire_fd);
+	pipewire_connect();
 }
 
 CameraServerLinux::~CameraServerLinux() {
@@ -130,6 +125,9 @@ CameraServerLinux::~CameraServerLinux() {
 
 bool CameraServerLinux::is_camera_present() {
 	g_autoptr(GVariant) result = nullptr;
+	if (proxy == nullptr) {
+		return false;
+	}
 	result = g_dbus_proxy_get_cached_property(proxy, "IsCameraPresent");
 	return g_variant_get_boolean(result);
 }
@@ -138,6 +136,9 @@ void CameraServerLinux::access_camera() {
 	g_autoptr(GError) err = nullptr;
 	GVariantBuilder builder;
 	GVariant *parameters;
+	if (proxy == nullptr) {
+		return;
+	}
 	String token = DesktopPortal::get_request_token();
 	DesktopPortal::portal_signal_subscribe(token, on_permission_callback, this);
 	g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
@@ -157,6 +158,9 @@ int CameraServerLinux::open_pipewire_remote() {
 	g_autoptr(GUnixFDList) fd_list = nullptr;
 	int fd_index;
 	int pw_fd;
+	if (proxy == nullptr) {
+		return -1;
+	}
 	g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
 	parameters = g_variant_new("(a{sv})", &builder);
 	result = g_dbus_proxy_call_with_unix_fd_list_sync(
@@ -169,10 +173,7 @@ int CameraServerLinux::open_pipewire_remote() {
 	return pw_fd;
 }
 
-void CameraServerLinux::pipewire_connect(int fd) {
-	if (fd == -1) {
-		return;
-	}
+void CameraServerLinux::pipewire_connect() {
 	if (loop == nullptr) {
 		loop = pw_thread_loop_new("", nullptr);
 		ERR_FAIL_NULL(loop);
@@ -184,14 +185,20 @@ void CameraServerLinux::pipewire_connect(int fd) {
 	ERR_FAIL_COND(pw_thread_loop_start(loop) < 0);
 	pw_thread_loop_lock(loop);
 	if (core == nullptr) {
-		core = pw_context_connect_fd(context, fcntl(fd, F_DUPFD_CLOEXEC, 5), nullptr, 0);
-		ERR_FAIL_NULL(core);
+		core = pw_context_connect(context, nullptr, 0);
 	}
-	if (registry == nullptr) {
+	if (core == nullptr) {
+		int fd = open_pipewire_remote();
+		if (fd != -1) {
+			core = pw_context_connect_fd(context, fcntl(fd, F_DUPFD_CLOEXEC, 5), nullptr, 0);
+		}
+	}
+	if (core && registry == nullptr) {
 		registry = pw_core_get_registry(core, PW_VERSION_REGISTRY, 0);
-		ERR_FAIL_NULL(registry);
+		if (registry) {
+			pw_registry_add_listener(registry, &registry_listener, &registry_events, this);
+		}
 	}
-	pw_registry_add_listener(registry, &registry_listener, &registry_events, this);
 	pw_thread_loop_unlock(loop);
 }
 
@@ -204,6 +211,9 @@ bool CameraServerLinux::request_permission() {
 }
 
 bool CameraServerLinux::permission_granted() {
+	if (core) {
+		return true;
+	}
 	return open_pipewire_remote() != -1;
 }
 

@@ -11,6 +11,11 @@ if camera_extension.permission_granted():
     # All good
     pass
 else:
+    var _on_permission_result = func(granted: bool) -> void:
+        if not granted:
+            print("Camera access permission not granted")
+            return
+    camera_extesion.permission_result.connect(_on_permission_result)
     camera_extension.request_permission()
 # Check new camera feeds
 print(CameraServer.feeds())

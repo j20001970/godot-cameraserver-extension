@@ -26,7 +26,6 @@
 	image.instantiate();
 	image->set_data(width, height, false, Image::FORMAT_RGB8, data);
 	self.feed->set_rgb_image(image);
-	self.feed->emit_signal("frame_changed");
 }
 
 @end
@@ -155,13 +154,11 @@ TypedArray<Dictionary> CameraFeedApple::get_formats() const {
 bool CameraFeedApple::set_format(int p_index, const Dictionary &p_parameters) {
 	if (p_index == -1) {
 		selected_format = p_index;
-		this_->emit_signal("format_changed");
 		return true;
 	}
 	ERR_FAIL_INDEX_V(p_index, device.formats.count, false);
 	ERR_FAIL_COND_V(this_->is_active(), false);
 	selected_format = p_index;
-	this_->emit_signal("format_changed");
 	return true;
 }
 

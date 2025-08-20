@@ -52,7 +52,6 @@ HRESULT SourceReaderCallback::OnReadSample(HRESULT hrStatus, DWORD dwStreamIndex
 	image->set_data(width, height, false, Image::FORMAT_RGBA8, data);
 	image->convert(Image::FORMAT_RGB8);
 	feed->this_->set_rgb_image(image);
-	feed->this_->call_deferred("emit_signal", "frame_changed");
 done:
 	if (output_buffer) {
 		output_buffer->Release();
@@ -244,14 +243,12 @@ TypedArray<Dictionary> CameraFeedWindows::get_formats() const {
 bool CameraFeedWindows::set_format(int p_index, const Dictionary &p_parameters) {
 	if (p_index == -1) {
 		selected_format = p_index;
-		this_->emit_signal("format_changed");
 		return true;
 	}
 	TypedArray<Dictionary> formats = get_formats();
 	ERR_FAIL_INDEX_V(p_index, formats.size(), false);
 	Dictionary format = formats[p_index];
 	selected_format = p_index;
-	this_->emit_signal("format_changed");
 	return true;
 }
 

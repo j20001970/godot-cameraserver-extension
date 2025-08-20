@@ -49,7 +49,6 @@ void CameraFeedAndroid::set_image(jint p_format, jint p_width, jint p_height, ji
 	} else {
 		return;
 	}
-	this_->emit_signal("frame_changed");
 }
 
 void CameraFeedAndroid::set_jpeg_image(jobjectArray p_buffers, int p_rotation) {
@@ -119,7 +118,6 @@ bool CameraFeedAndroid::set_format(int p_index, const Dictionary &p_parameters) 
 
 	JNIEnv *env = get_jni_env();
 	if (env->CallBooleanMethod(feed, _set_format, p_index)) {
-		this_->emit_signal("format_changed");
 		return true;
 	}
 	return false;

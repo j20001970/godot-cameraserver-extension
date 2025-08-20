@@ -38,7 +38,11 @@ print(CameraServer.feeds())
                     <li>JPEG</li>
                 </ul>
             </td>
-            <td align="center">-</td>
+            <td>
+                <ul>
+                    <li>Official Godot support using NDK since v4.5 (https://github.com/godotengine/godot/pull/106094)</li>
+                </ul>
+            </td>
         </tr>
         <tr>
             <td>Linux</td>
@@ -51,13 +55,23 @@ print(CameraServer.feeds())
                     <li>VYUY</li>
                 </ul>
             </td>
-            <td align="center">-</td>
+            <td>
+                <ul>
+                    <li>Official Godot support using V4L2 since v4.4 (https://github.com/godotengine/godot/pull/53666)</li>
+                    <li>Upstream PR: https://github.com/godotengine/godot/pull/109500</li>
+                </ul>
+            </td>
         </tr>
         <tr>
             <td>iOS</td>
             <td align="center" rowspan=2>AVFoundation</td>
             <td align="center" rowspan=2>-</td>
-            <td>Untested</td>
+            <td>
+                <ul>
+                    <li>Untested</li>
+                    <li>Upstream PR: https://github.com/godotengine/godot/pull/106305</li>
+                </ul>
+            </td>
         </tr>
         <tr>
             <td>macOS</td>
@@ -73,13 +87,22 @@ print(CameraServer.feeds())
                     <li>MJPG</li>
                 </ul>
             </td>
-            <td align="center">-</td>
+            <td>
+                <ul>
+                    <li>Upstream PR: https://github.com/godotengine/godot/pull/105476</li>
+                    <li>Upstream PR: https://github.com/godotengine/godot/pull/108538</li>
+                </ul>
+            </td>
         </tr>
         <tr>
             <td>Web</td>
             <td align="center">-</td>
             <td align="center">-</td>
-            <td align="center">-</td>
+            <td>
+                <ul>
+                    <li>Upstream PR: https://github.com/godotengine/godot/pull/106784</li>
+                </ul>
+            </td>
         </tr>
     </tbody>
 </table>
@@ -91,3 +114,4 @@ var feed := CameraServer.get_feed(0) # Returned feed will not work if it is Came
 var feed: CameraFeed = CameraServer.get_feed(0) # Same as above
 var feed = CameraServer.get_feed(0) # Both CameraFeed and CameraFeedExtension will work
 ```
+- Since Godot v4.5, CameraServerExtension requires setting `CameraServer.monitoring_feeds` to `true` before instantiation to provide custom feeds.

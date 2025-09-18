@@ -1,5 +1,8 @@
 #include "camera_feed_android.h"
 
+#include "godot_cpp/core/math.hpp"
+#include "godot_cpp/variant/transform2d.hpp"
+
 #include "camera/NdkCameraMetadataTags.h"
 #include "media/NdkImage.h"
 
@@ -59,7 +62,13 @@ void CameraFeedAndroid::set_jpeg_image(jobjectArray p_buffers, int p_rotation) {
 	jbyte *bytes = env->GetByteArrayElements(buffer, nullptr);
 	this->buffer->start = bytes;
 	this->buffer->length = env->GetArrayLength(buffer);
-	decoder->decode(*this->buffer, p_rotation);
+	if (rotation != p_rotation) {
+		Transform2D transform = {};
+		transform.rotate(Math::deg_to_rad(float(p_rotation)));
+		this_->set_transform(transform);
+		rotation = p_rotation;
+	}
+	decoder->decode(*this->buffer);
 	env->ReleaseByteArrayElements(buffer, bytes, 0);
 }
 

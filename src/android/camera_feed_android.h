@@ -26,6 +26,7 @@ private:
 	jobject feed = nullptr;
 	BufferDecoder *decoder = nullptr;
 	StreamingBuffer *buffer = nullptr;
+	int rotation = 0;
 
 	static void setup(jclass p_feed);
 

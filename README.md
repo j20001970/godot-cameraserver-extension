@@ -69,7 +69,8 @@ print(CameraServer.feeds())
             <td>
                 <ul>
                     <li>Untested</li>
-                    <li>Upstream PR: https://github.com/godotengine/godot/pull/106305</li>
+                    <li><s>Upstream PR: https://github.com/godotengine/godot/pull/106305</s></li>
+                    <li>Upstream PR: https://github.com/godot-sdk-integrations/godot-ios-plugins/pull/89</li>
                 </ul>
             </td>
         </tr>
@@ -89,7 +90,6 @@ print(CameraServer.feeds())
             </td>
             <td>
                 <ul>
-                    <li>Upstream PR: https://github.com/godotengine/godot/pull/105476</li>
                     <li>Upstream PR: https://github.com/godotengine/godot/pull/108538</li>
                 </ul>
             </td>

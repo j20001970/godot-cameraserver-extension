@@ -14,17 +14,33 @@
 	PackedByteArray data;
 	Ref<Image> image;
 	CVPixelBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-	ERR_FAIL_COND(CVPixelBufferGetPixelFormatType(imageBuffer) != kCVPixelFormatType_24RGB);
+	ERR_FAIL_COND(CVPixelBufferGetPixelFormatType(imageBuffer) != kCVPixelFormatType_32BGRA);
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	uint8_t *baseAddress = (uint8_t *)CVPixelBufferGetBaseAddress(imageBuffer);
 	size_t width = CVPixelBufferGetWidth(imageBuffer);
 	size_t height = CVPixelBufferGetHeight(imageBuffer);
-	size_t size = CVPixelBufferGetDataSize(imageBuffer);
+	size_t bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer);
+	size_t size = width * height * 4;
 	data.resize(size);
-	memcpy(data.ptrw(), baseAddress, size);
+	
+	// Copy row by row, converting BGRA to RGBA
+	uint8_t *dest = data.ptrw();
+	for (size_t row = 0; row < height; row++) {
+		uint8_t *srcRow = baseAddress + (row * bytesPerRow);
+		uint8_t *destRow = dest + (row * width * 4);
+		for (size_t col = 0; col < width; col++) {
+			size_t srcIdx = col * 4;
+			size_t destIdx = col * 4;
+			destRow[destIdx + 0] = srcRow[srcIdx + 2]; // R = B
+			destRow[destIdx + 1] = srcRow[srcIdx + 1]; // G = G
+			destRow[destIdx + 2] = srcRow[srcIdx + 0]; // B = R
+			destRow[destIdx + 3] = srcRow[srcIdx + 3]; // A = A
+		}
+	}
+	
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	image.instantiate();
-	image->set_data(width, height, false, Image::FORMAT_RGB8, data);
+	image->set_data(width, height, false, Image::FORMAT_RGBA8, data);
 	self.feed->set_rgb_image(image);
 }
 
@@ -98,7 +114,7 @@ bool CameraFeedApple::activate_feed() {
 	output = [AVCaptureVideoDataOutput new];
 	[output setAlwaysDiscardsLateVideoFrames:YES];
 	// CameraFeed does not seem to display YUV image data correctly so we have to do conversion here.
-	[output setVideoSettings:@{(id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_24RGB)}];
+	[output setVideoSettings:@{(id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA)}];
 	[output setSampleBufferDelegate:delegate queue:dispatch_get_main_queue()];
 	session = [[AVCaptureSession alloc] init];
 	[session beginConfiguration];

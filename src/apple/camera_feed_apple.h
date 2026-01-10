@@ -40,6 +40,9 @@ public:
 	TypedArray<Dictionary> get_formats() const override;
 	bool set_format(int p_index, const Dictionary &p_parameters) override;
 
+	//// Debugging method - comment out when not needed
+	//Dictionary get_current_format() const override;
+
 	void set_this(CameraFeedExtension *p_feed) override;
 };
 

@@ -146,7 +146,9 @@ bool CameraFeedApple::activate_feed() {
 	
 	session = [[AVCaptureSession alloc] init];
 	// CRITICAL FIX: Tell session to use device's active format
-	session.sessionPreset = AVCaptureSessionPresetInputPriority;
+	#if TARGET_OS_IOS
+		session.sessionPreset = AVCaptureSessionPresetInputPriority;
+	#endif
 	
 	[session beginConfiguration];
 	[session addInput:input];

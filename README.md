@@ -65,10 +65,13 @@ print(CameraServer.feeds())
         <tr>
             <td>iOS</td>
             <td align="center" rowspan=2>AVFoundation</td>
-            <td align="center" rowspan=2>-</td>
+            <td align="center" rowspan=2>
+                <ul>
+                    <li>RGBA</li>
+                </ul>
+            </td>
             <td>
                 <ul>
-                    <li>Untested</li>
                     <li><s>Upstream PR: https://github.com/godotengine/godot/pull/106305</s></li>
                     <li>Upstream PR: https://github.com/godot-sdk-integrations/godot-ios-plugins/pull/89</li>
                 </ul>

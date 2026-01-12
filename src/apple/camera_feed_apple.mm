@@ -145,10 +145,10 @@ bool CameraFeedApple::activate_feed() {
 	[output setSampleBufferDelegate:delegate queue:dispatch_get_main_queue()];
 	
 	session = [[AVCaptureSession alloc] init];
-	// CRITICAL FIX: Tell session to use device's active format
-	#if TARGET_OS_IOS
-		session.sessionPreset = AVCaptureSessionPresetInputPriority;
-	#endif
+// CRITICAL FIX: Tell session to use device's active format
+#if TARGET_OS_IOS
+	session.sessionPreset = AVCaptureSessionPresetInputPriority;
+#endif
 	
 	[session beginConfiguration];
 	[session addInput:input];
@@ -156,31 +156,35 @@ bool CameraFeedApple::activate_feed() {
 	
 	// Apply format during session configuration
 	if (selected_format != -1) {
-		ERR_FAIL_INDEX_V(selected_format, device.formats.count, false);
-		deviceLocked = [device lockForConfiguration:&err];
-		ERR_FAIL_COND_V_MSG(!deviceLocked, false, err.localizedFailureReason.UTF8String);
-		
-		[device setActiveFormat:device.formats[selected_format]];
-		
-		// CRITICAL FIX: Also set frame rate
-		AVCaptureDeviceFormat *format = device.formats[selected_format];
-		AVFrameRateRange *bestRange = nil;
-		double maxFPS = 0;
-		
-		for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
-			if (range.maxFrameRate > maxFPS) {
-				maxFPS = range.maxFrameRate;
-				bestRange = range;
+    	ERR_FAIL_INDEX_V(selected_format, device.formats.count, false);
+    	deviceLocked = [device lockForConfiguration:&err];
+    
+		// OLD: ERR_FAIL_COND_V_MSG(!deviceLocked, false, err.localizedFailureReason.UTF8String);
+		// NEW: Just log error but continue
+		if (!deviceLocked) {
+			ERR_PRINT(vformat("Failed to lock device for configuration: %s", String(err.localizedFailureReason.UTF8String)));
+		} else {
+			[device setActiveFormat:device.formats[selected_format]];
+			
+			// CRITICAL FIX: Also set frame rate
+			AVCaptureDeviceFormat *format = device.formats[selected_format];
+			AVFrameRateRange *bestRange = nil;
+			double maxFPS = 0;
+        
+			for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
+				if (range.maxFrameRate > maxFPS) {
+					maxFPS = range.maxFrameRate;
+					bestRange = range;
+				}
+			}
+        
+			if (bestRange) {
+				CMTime frameDuration = CMTimeMake(1, (int32_t)bestRange.maxFrameRate);
+				[device setActiveVideoMinFrameDuration:frameDuration];
+				[device setActiveVideoMaxFrameDuration:frameDuration];
 			}
 		}
-		
-		if (bestRange) {
-			CMTime frameDuration = CMTimeMake(1, (int32_t)bestRange.maxFrameRate);
-			[device setActiveVideoMinFrameDuration:frameDuration];
-			[device setActiveVideoMaxFrameDuration:frameDuration];
-		}
 	}
-	
 	[session commitConfiguration];
 	[session startRunning];
 	return true;

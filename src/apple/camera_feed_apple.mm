@@ -145,8 +145,9 @@ bool CameraFeedApple::activate_feed() {
 	[output setSampleBufferDelegate:delegate queue:dispatch_get_main_queue()];
 	
 	session = [[AVCaptureSession alloc] init];
-// CRITICAL FIX: Tell session to use device's active format
+
 #if TARGET_OS_IOS
+	// CRITICAL FIX: Tell session to use device's active format
 	session.sessionPreset = AVCaptureSessionPresetInputPriority;
 #endif
 	
@@ -158,15 +159,12 @@ bool CameraFeedApple::activate_feed() {
 	if (selected_format != -1) {
     	ERR_FAIL_INDEX_V(selected_format, device.formats.count, false);
     	deviceLocked = [device lockForConfiguration:&err];
-    
-		// OLD: ERR_FAIL_COND_V_MSG(!deviceLocked, false, err.localizedFailureReason.UTF8String);
-		// NEW: Just log error but continue
+    		
 		if (!deviceLocked) {
 			ERR_PRINT(vformat("Failed to lock device for configuration: %s", String(err.localizedFailureReason.UTF8String)));
 		} else {
 			[device setActiveFormat:device.formats[selected_format]];
 			
-			// CRITICAL FIX: Also set frame rate
 			AVCaptureDeviceFormat *format = device.formats[selected_format];
 			AVFrameRateRange *bestRange = nil;
 			double maxFPS = 0;

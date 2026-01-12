@@ -1,4 +1,5 @@
 #include "camera_feed_apple.h"
+#import <Accelerate/Accelerate.h>
 
 @implementation OutputDelegate
 
@@ -10,21 +11,69 @@
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
 		didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
-			   fromConnection:(AVCaptureConnection *)connection {
+			  fromConnection:(AVCaptureConnection *)connection {
 	PackedByteArray data;
 	Ref<Image> image;
 	CVPixelBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-	ERR_FAIL_COND(CVPixelBufferGetPixelFormatType(imageBuffer) != kCVPixelFormatType_24RGB);
+	ERR_FAIL_COND(CVPixelBufferGetPixelFormatType(imageBuffer) != kCVPixelFormatType_32BGRA);
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	uint8_t *baseAddress = (uint8_t *)CVPixelBufferGetBaseAddress(imageBuffer);
 	size_t width = CVPixelBufferGetWidth(imageBuffer);
 	size_t height = CVPixelBufferGetHeight(imageBuffer);
-	size_t size = CVPixelBufferGetDataSize(imageBuffer);
+	size_t bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer);
+	size_t size = width * height * 4;
 	data.resize(size);
-	memcpy(data.ptrw(), baseAddress, size);
+	uint8_t *dest = data.ptrw();
+
+	// Check if there's padding
+	if (bytesPerRow == width * 4) {
+		// No padding - can use fast path with vImage
+		vImage_Buffer src = {
+			.data = baseAddress,
+			.height = height,
+			.width = width,
+			.rowBytes = bytesPerRow
+		};
+		
+		vImage_Buffer dst = {
+			.data = dest,
+			.height = height,
+			.width = width,
+			.rowBytes = width * 4
+		};
+		
+		// Use Accelerate for channel permutation
+		// BGRA -> RGBA: map channels [2,1,0,3]
+		const uint8_t permuteMap[4] = {2, 1, 0, 3};
+		vImagePermuteChannels_ARGB8888(&src, &dst, permuteMap, kvImageNoFlags);
+	} else {
+		// Has padding - need row-by-row copy
+		for (size_t row = 0; row < height; row++) {
+			uint8_t *srcRow = baseAddress + (row * bytesPerRow);
+			uint8_t *destRow = dest + (row * width * 4);
+			
+			vImage_Buffer src = {
+				.data = srcRow,
+				.height = 1,
+				.width = width,
+				.rowBytes = bytesPerRow
+			};
+			
+			vImage_Buffer dst = {
+				.data = destRow,
+				.height = 1,
+				.width = width,
+				.rowBytes = width * 4
+			};
+			
+			const uint8_t permuteMap[4] = {2, 1, 0, 3};
+			vImagePermuteChannels_ARGB8888(&src, &dst, permuteMap, kvImageNoFlags);
+		}
+	}
+
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	image.instantiate();
-	image->set_data(width, height, false, Image::FORMAT_RGB8, data);
+	image->set_data(width, height, false, Image::FORMAT_RGBA8, data);
 	self.feed->set_rgb_image(image);
 }
 
@@ -74,36 +123,66 @@ bool CameraFeedApple::activate_feed() {
 		AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
 		if (status == AVAuthorizationStatusNotDetermined) {
 			[AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo
-									 completionHandler:^(BOOL granted) {
-										 if (granted) {
-											 activate_feed();
-										 } else {
-											 deactivate_feed();
-										 }
-									 }];
+									completionHandler:^(BOOL granted) {
+										if (granted) {
+											activate_feed();
+										} else {
+											deactivate_feed();
+										}
+									}];
 			return true;
 		} else if (status != AVAuthorizationStatusAuthorized) {
 			return false;
 		}
 #endif
 	}
-	if (selected_format != -1) {
-		ERR_FAIL_INDEX_V(selected_format, device.formats.count, false);
-		deviceLocked = [device lockForConfiguration:&err];
-		ERR_FAIL_COND_V_MSG(!deviceLocked, false, err.localizedFailureReason.UTF8String);
-		[device setActiveFormat:device.formats[selected_format]];
-	}
+	
 	input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&err];
 	ERR_FAIL_COND_V_MSG(!input, false, err.localizedFailureReason.UTF8String);
 	output = [AVCaptureVideoDataOutput new];
 	[output setAlwaysDiscardsLateVideoFrames:YES];
-	// CameraFeed does not seem to display YUV image data correctly so we have to do conversion here.
-	[output setVideoSettings:@{(id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_24RGB)}];
+	[output setVideoSettings:@{(id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA)}];
 	[output setSampleBufferDelegate:delegate queue:dispatch_get_main_queue()];
+	
 	session = [[AVCaptureSession alloc] init];
+
+#if TARGET_OS_IOS
+	// CRITICAL FIX: Tell session to use device's active format
+	session.sessionPreset = AVCaptureSessionPresetInputPriority;
+#endif
+	
 	[session beginConfiguration];
 	[session addInput:input];
 	[session addOutput:output];
+	
+	// Apply format during session configuration
+	if (selected_format != -1) {
+    	ERR_FAIL_INDEX_V(selected_format, device.formats.count, false);
+    	deviceLocked = [device lockForConfiguration:&err];
+    		
+		if (!deviceLocked) {
+			ERR_PRINT(vformat("Failed to lock device for configuration: %s", String(err.localizedFailureReason.UTF8String)));
+		} else {
+			[device setActiveFormat:device.formats[selected_format]];
+			
+			AVCaptureDeviceFormat *format = device.formats[selected_format];
+			AVFrameRateRange *bestRange = nil;
+			double maxFPS = 0;
+        
+			for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
+				if (range.maxFrameRate > maxFPS) {
+					maxFPS = range.maxFrameRate;
+					bestRange = range;
+				}
+			}
+        
+			if (bestRange) {
+				CMTime frameDuration = CMTimeMake(1, (int32_t)bestRange.maxFrameRate);
+				[device setActiveVideoMinFrameDuration:frameDuration];
+				[device setActiveVideoMaxFrameDuration:frameDuration];
+			}
+		}
+	}
 	[session commitConfiguration];
 	[session startRunning];
 	return true;
@@ -161,6 +240,40 @@ bool CameraFeedApple::set_format(int p_index, const Dictionary &p_parameters) {
 	selected_format = p_index;
 	return true;
 }
+
+// Debugging method - comment out when not needed
+/*
+Dictionary CameraFeedApple::get_current_format() const {
+	Dictionary result;
+	
+	if (!device || !device.activeFormat) {
+		return result;
+	}
+	
+	AVCaptureDeviceFormat *format = device.activeFormat;
+	CMFormatDescriptionRef desc = format.formatDescription;
+	
+	CMVideoDimensions dimensions = CMVideoFormatDescriptionGetDimensions(desc);
+	result["width"] = dimensions.width;
+	result["height"] = dimensions.height;
+	
+	FourCharCode fourcc = CMFormatDescriptionGetMediaSubType(desc);
+	result["pixel_format"] = 
+		String::chr((char)(fourcc >> 24) & 0xFF) +
+		String::chr((char)(fourcc >> 16) & 0xFF) +
+		String::chr((char)(fourcc >> 8) & 0xFF) +
+		String::chr((char)(fourcc >> 0) & 0xFF);
+	
+	CMTime frameDuration = device.activeVideoMinFrameDuration;
+	if (frameDuration.timescale > 0) {
+		result["fps"] = (double)frameDuration.timescale / frameDuration.value;
+	} else {
+		result["fps"] = 0.0;
+	}
+	
+	return result;
+}
+*/
 
 CameraFeedExtension::CameraFeedExtension() {
 	impl = std::make_unique<CameraFeedApple>(this);

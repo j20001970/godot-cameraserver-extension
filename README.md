@@ -15,7 +15,7 @@ else:
         if not granted:
             print("Camera access permission not granted")
             return
-    camera_extesion.permission_result.connect(_on_permission_result)
+    camera_extension.permission_result.connect(_on_permission_result)
     camera_extension.request_permission()
 # Check new camera feeds
 print(CameraServer.feeds())

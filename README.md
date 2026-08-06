@@ -6,19 +6,19 @@ CameraServerExtension is a Godot 4.4+ plugin that extends the support of origina
 
 ```gdscript
 var camera_extension := CameraServerExtension.new()
-# Check camera permission
-if camera_extension.permission_granted():
-    # All good
-    pass
-else:
-    var _on_permission_result = func(granted: bool) -> void:
-        if not granted:
-            print("Camera access permission not granted")
-            return
-    camera_extension.permission_result.connect(_on_permission_result)
-    camera_extension.request_permission()
-# Check new camera feeds
-print(CameraServer.feeds())
+
+func _ready() -> void:
+    # Check camera permission
+    if camera_extension.permission_granted():
+        print(CameraServer.feeds())
+    else:
+        var _on_permission_result = func(granted: bool) -> void:
+            if granted:
+                print(CameraServer.feeds())
+            else:
+                print("Camera access permission not granted")
+        camera_extension.permission_result.connect(_on_permission_result)
+        camera_extension.request_permission()
 ```
 
 ## Support Status

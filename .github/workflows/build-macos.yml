@@ -30,7 +30,7 @@ jobs:
 
       - name: Build
         run: |
-          scons arch=${{ matrix.arch }} ${{ matrix.sconsflags }}
+          scons api_version=4.4 arch=${{ matrix.arch }} ${{ matrix.sconsflags }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

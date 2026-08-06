@@ -34,7 +34,7 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           python -m pip install scons
-          scons arch=${{ matrix.arch }}
+          scons api_version=4.4 arch=${{ matrix.arch }}
           EOF
 
       - name: Upload Artifacts
